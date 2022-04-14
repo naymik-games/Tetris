@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <title>TetNet</title>
+ <link href='https://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
+ <style>
+   
+</style>
+
+</head>
+<style>
+body {
+    background-color: #272821;
+  }
+  .text {
+    color: #706C5A;
+    font-family: Inconsolata, Courier, monospace;
+    font-size: 20px;
+  }
+  #output {
+    float: left;
+    padding-left: 0%;
+  }
+  #score {
+    padding-left: 30%;
+  }
+  #instructions {
+    float: right;
+    position: absolute;
+    left: 30%;
+    bottom: 35%;
+    font-size: small;
+    line-height: 110%;
+  }
+
+  a:link {
+    color: inherit;
+  }
+</style>
+<body>
+  <div id="output" class="text"></div>
+  <div id="score" class="text"></div>
+  <div id="instructions" class="text"><br /><b>[Key Commands]</b><br />Speed Up: [E]<br />Slow Down: [D]<br />Move Shape: [Arrow Keys]<br />Rotate Shape: [Up Arrow]<br />Drop Shape: [Down Arrow]<br />Save State: [Q]<br />Load State: [W]<br />Pick Shape: [I,O,T,S,Z,J,L]</div>
+  
+  
+  <script type="text/javascript" src="tetris.js">
+ 
+  </script>
+</body>
+</html>
