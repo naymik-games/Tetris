@@ -1,85 +1,5 @@
-let game;
-let gameOptions = {
-  rows: 20,
-  columns: 10,
-  cellSize: 50,
-  blocksPerLine: 8
-}
 
-//Define 10x20 grid as the board
-var grid = [];
-
-//Block shapes
-var shapes = {
-  I: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
-  J: [[2, 0, 0], [2, 2, 2], [0, 0, 0]],
-  L: [[0, 0, 3], [3, 3, 3], [0, 0, 0]],
-  O: [[4, 4], [4, 4]],
-  S: [[0, 5, 5], [5, 5, 0], [0, 0, 0]],
-  T: [[0, 6, 0], [6, 6, 6], [0, 0, 0]],
-  Z: [[7, 7, 0], [0, 7, 7], [0, 0, 0]]
-};
-const WIDTH = 10;
-const HEIGHT = 20
-
-var gridMini = [];
-//Block colors
-//var colors = ["F92338", "C973FF", "1C76BC", "FEE356", "53D504", "36E0FF", "F8931D"];
-var colors = [0x000000, 0x022054, 0x013e13, 0x783e04, 0x780407,0x005846,0x45013f,0x5d6d7e, 0x0e6251, 0x7e5109, 0x04274d, 0x811d05, 0x058165];
-//Used to help create a seeded generated random number for choosing shapes. makes results deterministic (reproducible) for debugging
-var rndSeed = Math.floor(Math.random() * 1000) + 1;
-
-//BLOCK SHAPES
-//coordinates and shape parameter of current block we can update
-var currentShape = { x: 0, y: 0, shape: undefined };
-//store shape of upcoming block
-var upcomingShape;
-//stores shapes
-var bag = [];
-//index for shapes in the bag
-var bagIndex = 0;
-
-//GAME VALUES
-//Game score
-var score = 0;
-//level
-var level = 1;
-// game speed
-var speed = 500;
-// boolean for changing game speed
-var changeSpeed = false;
-//for storing current state, we can load later
-var saveState;
-//stores current game state
-var roundState;
-//list of available game speeds
-var speeds = [1000, 800, 700, 600, 500, 450, 400, 350, 300, 275, 250, 225, 200, 180, 170, 160, 150, 140, 130, 120, 110, 100, 100, 100, 100];
-//inded in game speed array
-var speedIndex = 0;
-
-//pause flag
-var isPaused = false;
-//drawing game vs updating algorithms
-var draw = true;
-
-//game modes
-var gameMode = 'a';
-var startLevel = 1;
-var startHeight = 0;
-
-
-//default save values
-var defaultValues = {
-  highScoreA: 0,
-  highScoreB: 0,
-  music: false,
-  sfx: false,
-  blockSet: 0,
-  cheat: false,
-}
-var gameSettings = {};
-
-window.onload = function() {
+window.onload = function () {
   let gameConfig = {
     type: Phaser.AUTO,
     backgroundColor: 0x000000,
@@ -90,312 +10,45 @@ window.onload = function() {
       width: 850,
       height: 1450
     },
-    physics: {
-      default: "arcade",
-      arcade: {
-        gravity: {
-          y: gameOptions.gameGravity
-        }
-      }
+    pixelArt: true,
+    render: {
+      antialias: false,
+      pixelArt: true,
+      roundPixels: true
     },
     scene: [preloadGame, titleScreen, settingsScreen, playGame, pauseGame]
   }
   game = new Phaser.Game(gameConfig);
   window.focus();
 }
-class preloadGame extends Phaser.Scene {
-  constructor() {
-    super("PreloadGame");
-  }
-  preload() {
-    var progressBar = this.add.graphics();
-    var progressBox = this.add.graphics();
-    progressBox.fillStyle(0x222222, 0.8);
-    progressBox.fillRect(240, 270, 320, 50);
-
-    var width = this.cameras.main.width;
-    var height = this.cameras.main.height;
-    var loadingText = this.make.text({
-      x: width / 2,
-      y: height / 2 - 50,
-      text: 'Loading...',
-      style: {
-        font: '20px monospace',
-        fill: '#ffffff'
-      }
-    });
-    loadingText.setOrigin(0.5, 0.5);
-
-    var percentText = this.make.text({
-      x: width / 2,
-      y: height / 2 - 5,
-      text: '0%',
-      style: {
-        font: '18px monospace',
-        fill: '#ffffff'
-      }
-    });
-    percentText.setOrigin(0.5, 0.5);
-
-    var assetText = this.make.text({
-      x: width / 2,
-      y: height / 2 + 50,
-      text: '',
-      style: {
-        font: '18px monospace',
-        fill: '#ffffff'
-      }
-    });
-
-    assetText.setOrigin(0.5, 0.5);
-
-    this.load.on('progress', function(value) {
-      percentText.setText(parseInt(value * 100) + '%');
-      progressBar.clear();
-      progressBar.fillStyle(0xffffff, 1);
-      progressBar.fillRect(250, 280, 300 * value, 30);
-    });
-
-    this.load.on('fileprogress', function(file) {
-      assetText.setText('Loading asset: ' + file.key);
-    });
-
-    this.load.on('complete', function() {
-      progressBar.destroy();
-      progressBox.destroy();
-      loadingText.destroy();
-      percentText.destroy();
-      assetText.destroy();
-    });
-
-    this.load.image("logo", "assets/logo.png");
-    for (var i = 0; i < 125; i++) {
-      this.load.image("logo", "assets/logo.png");
-    }
 
 
-
-
-
-
-
-
-    this.load.bitmapFont("topaz", "assets/fonts/topaz.png", "assets/fonts/topaz.xml");
-	
-    
-	
-    this.load.audio("clearLine", "assets/audio/clear.wav");
-    this.load.audio("nextLevel", "assets/audio/levelup.mp3");
-	this.load.audio("pause", "assets/audio/pause.mp3");
-	this.load.audio("gameover", "assets/audio/gameover.mp3");
-	this.load.audio("tetris", "assets/audio/tetris.mp3");
-	this.load.audio("move", "assets/audio/move.mp3");
-	this.load.audio("rotate", "assets/audio/rot.mp3");
-	this.load.audio("set", "assets/audio/set.mp3");
-	
-    
-    this.load.audio("music1", "assets/audio/theme2.mp3");
-	this.load.audio("background", "assets/audio/tetris.wav");
-	
-    this.load.image("particle", "assets/sprites/particle.png");;
-    this.load.image("hero", "assets/hero.png");
-    this.load.image("platform", "assets/platform.png");
-
-    this.load.spritesheet("icons", "assets/game_icons.png", {
-      frameWidth: 100,
-      frameHeight: 100
-    });
-    this.load.spritesheet("toggle", "assets/toggles.png", {
-      frameWidth: 120,
-      frameHeight: 66
-    });
-	this.load.spritesheet("blocksample", "assets/block_samples.png", {
-      frameWidth: 200,
-      frameHeight: 200
-    });
-    this.load.spritesheet("shapes", "assets/shapeicons.png", {
-      frameWidth: 100,
-      frameHeight: 100
-    });
-  }
-  create() {
-    this.scene.start("titleScreen");
-  }
-}
-class titleScreen extends Phaser.Scene {
-  constructor() {
-    super("titleScreen");
-  }
-  preload() {
-        
-  }
-  create() {
-    gameSettings = JSON.parse(localStorage.getItem('tetrisSettings'));
-    if (gameSettings === null || gameSettings.length <= 0) {
-      localStorage.setItem('tetrisSettings', JSON.stringify(defaultValues));
-      gameSettings = defaultValues;
-    }
-	
-  //  this.logo = this.add.image(game.config.width / 2, 200, 'logo').setOrigin(.5, .5).setScale(.7);
-    this.title = this.add.bitmapText(game.config.width / 2, 125, 'topaz', 'TETRIS', 120).setOrigin(.5).setTint(0xbd250d);
-    this.title.setLetterSpacing(10);
-    this.tShape = this.add.image(75, 150, 'shapes', 1).setScale(1.5);
-    this.jShape = this.add.image(750, 125, 'shapes', 5).setScale(1.5);
-    this.directions = this.add.bitmapText(game.config.width / 2, 280, 'topaz', 'Choose a game mode and starting options', 30).setOrigin(.5).setTint(0xffffff);
-    
-    this.playAIcon = this.add.image(150,850, 'icons', 4).setOrigin(0,.5).setInteractive();
-    this.playBIcon = this.add.image(600,850, 'icons', 4).setOrigin(0,.5).setInteractive();
-
-    
-    this.playTextA = this.add.bitmapText(50, 400, 'topaz', 'Play A', 70).setOrigin(0, .5).setTint(0xffffff);
-
-    this.playTextA.setInteractive();
-    
-    this.levelA = this.add.bitmapText(50, 550, 'topaz', 'Level 1 >', 50).setOrigin(0, .5).setTint(0xd8a603).setInteractive();
-    this.levelA.on('pointerdown', this.levelASelect, this);
-    
-    this.playAIcon.on('pointerdown', function() {
-      this.scene.start("PlayGame");
-    }, this);
-
-    this.playTextB = this.add.bitmapText(550, 400, 'topaz', 'Play B', 70).setOrigin(0, .5).setTint(0xffffff);
-    this.levelB = this.add.bitmapText(550, 550, 'topaz', 'Level 1 >', 50).setOrigin(0, .5).setTint(0xd8a603).setInteractive();
-    this.levelB.on('pointerdown', this.levelBSelect, this);
-    this.heightB = this.add.bitmapText(550, 700, 'topaz', 'Height 0 >', 50).setOrigin(0, .5).setTint(0xd8a603).setInteractive();
-    this.heightB.on('pointerdown', this.heightBSelect, this);
-
-
-
-
-    this.playTextB.setInteractive();
-    this.playBIcon.on('pointerdown', function() {
-      gameMode = 'b';
-      
-      
-      this.scene.start("PlayGame");
-    }, this);
-
-
-
-
-
-
-    this.setText = this.add.bitmapText(game.config.width / 2, 1100, 'topaz', 'settings', 70).setOrigin(.5, .5).setTint(0xffffff);
-    this.setText.setInteractive();
-    this.settingIcon = this.add.image(game.config.width / 2, 1250, 'icons', 3).setOrigin(.5).setInteractive();
-
-    this.settingIcon.on('pointerdown', function() {
-
-      this.scene.start("settingsScreen");
-    }, this);
-    
-
-
-
-
-
-  }
-  
-  levelASelect() {
-    if (startLevel == 9) {
-      startLevel = 1;
-    } else {
-      startLevel++
-    }
-  
-    var tween = this.tweens.add({
-      targets: this.levelA,
-      alpha: 0,
-      duration: 100,
-      yoyo: true
-    });
-    this.levelA.setText('Level ' + startLevel + ' >');
-  }
-  
-  
-  levelBSelect(){
-    if(startLevel == 9){
-      startLevel = 1;
-    } else{
-      startLevel++
-    }
-    
-	  var tween = this.tweens.add({
-      targets: this.levelB,
-      alpha: 0,
-      duration: 100,
-      yoyo: true
-      });
-    this.levelB.setText('Level ' + startLevel + ' >');
-  }
-   
-  heightBSelect() {
-    if (startHeight == 5) {
-      startHeight = 0;
-    } else {
-      startHeight++
-    }
-  
-    var tween = this.tweens.add({
-      targets: this.heightB,
-      alpha: 0,
-      duration: 100,
-      yoyo: true
-    });
-    this.heightB.setText('Height ' + startHeight + ' >');
-  }
-  
-}
 class playGame extends Phaser.Scene {
   constructor() {
     super("PlayGame");
   }
   preload() {
-	  if(gameSettings.blockSet == 0){
-		this.load.spritesheet("field", "assets/blocks2.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});		  
-	  } else if (gameSettings.blockSet == 1){
-		this.load.spritesheet("field", "assets/blocks3.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  } else if (gameSettings.blockSet == 2){
-		this.load.spritesheet("field", "assets/blocks4.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  } else if (gameSettings.blockSet == 3){
-		this.load.spritesheet("field", "assets/blocks5.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  } else if (gameSettings.blockSet == 4){
-		this.load.spritesheet("field", "assets/blocks6.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  } else if (gameSettings.blockSet == 5){
-		this.load.spritesheet("field", "assets/blocks7.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  } else if (gameSettings.blockSet == 6){
-		this.load.spritesheet("field", "assets/blocks8.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  } else if (gameSettings.blockSet == 7){
-		this.load.spritesheet("field", "assets/blocks9.png", {
-		  frameWidth: 100,
-		  frameHeight: 100
-		});	
-	  }
+
 
   }
   create() {
-    
+    if (gameSettings.blockSet == 0) {
+      blockKey = 'field0'
+    } else if (gameSettings.blockSet == 1) {
+      blockKey = 'field1'
+    } else if (gameSettings.blockSet == 2) {
+      blockKey = 'field2'
+    } else if (gameSettings.blockSet == 3) {
+      blockKey = 'field3'
+    } else if (gameSettings.blockSet == 4) {
+      blockKey = 'field4'
+    } else if (gameSettings.blockSet == 5) {
+      blockKey = 'field5'
+    } else if (gameSettings.blockSet == 6) {
+      blockKey = 'field6'
+    } else if (gameSettings.blockSet == 7) {
+      blockKey = 'field7'
+    }
     level = startLevel;
     gameSettings = JSON.parse(localStorage.getItem('tetrisSettings'));
 
@@ -409,14 +62,14 @@ class playGame extends Phaser.Scene {
     }
     this.clearLineAudio = this.sound.add('clearLine', { loop: false });
     this.nextLevelAudio = this.sound.add('nextLevel', { loop: false });
-	this.pauseAudio = this.sound.add('pause', { loop: false });
-	this.gameOverAudio = this.sound.add('gameover', { loop: false });
-	this.tetrisAudio = this.sound.add('tetris', { loop: false });
-	this.moveAudio = this.sound.add('move', { loop: false });
-	this.rotateAudio = this.sound.add('rotate', { loop: false });
-	this.setAudio = this.sound.add('set', { loop: false });
-	
-	//variables
+    this.pauseAudio = this.sound.add('pause', { loop: false });
+    this.gameOverAudio = this.sound.add('gameover', { loop: false });
+    this.tetrisAudio = this.sound.add('tetris', { loop: false });
+    this.moveAudio = this.sound.add('move', { loop: false });
+    this.rotateAudio = this.sound.add('rotate', { loop: false });
+    this.setAudio = this.sound.add('set', { loop: false });
+
+    //variables
     this.blockSize = 60;
     this.blockSizeMini = 30;
     this.totalCleared = 0;
@@ -449,15 +102,15 @@ class playGame extends Phaser.Scene {
     this.scoreText = this.add.bitmapText(275, 50, 'topaz', score, 70).setOrigin(0, .5).setTint(0xd8a603);
 
     this.bestLabelText = this.add.bitmapText(575, 50, 'topaz', 'Score:', 40).setOrigin(0, .5).setTint(0xffffff);
-    if(gameMode == 'a'){
+    if (gameMode == 'a') {
       gameSettings.highScoreA = gameSettings.highScoreA.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       this.bestText = this.add.bitmapText(700, 50, 'topaz', gameSettings.highScoreA, 40).setOrigin(0, .5).setTint(0xff0000);
     } else {
       gameSettings.highScoreB = gameSettings.highScoreB.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       this.bestText = this.add.bitmapText(700, 50, 'topaz', gameSettings.highScoreB, 40).setOrigin(0, .5).setTint(0xff0000);
     }
-    
-    
+
+
     this.clearedLabelText = this.add.bitmapText(750, 300, 'topaz', 'Lines', 50).setOrigin(.5).setTint(0xffffff);
 
     if (gameMode == 'a') {
@@ -471,37 +124,37 @@ class playGame extends Phaser.Scene {
 
     this.levelText = this.add.bitmapText(750, 600, 'topaz', level, 50).setOrigin(.5).setTint(0xd8a603);
 
-	
-	this.restartIcon = this.add.image(750,800, 'icons', 1).setInteractive();
-	this.restartIcon.on("pointerdown", function() {
-		this.scene.restart("PlayGame");
+
+    this.restartIcon = this.add.image(750, 800, 'icons', 1).setInteractive();
+    this.restartIcon.on("pointerdown", function () {
+      this.scene.restart("PlayGame");
 
     }, this);
 
-	this.homeIcon = this.add.image(750,950, 'icons', 2).setInteractive();
-	this.homeIcon.on("pointerdown", function() {
-		this.scene.start("titleScreen");
+    this.homeIcon = this.add.image(750, 950, 'icons', 2).setInteractive();
+    this.homeIcon.on("pointerdown", function () {
+      this.scene.start("titleScreen");
 
     }, this);
 
-	this.muteIcon = this.add.image(750,1100, 'icons', 5).setInteractive();
-	this.muteIcon.on("pointerdown", function() {
-		var muted = this.game.sound.mute;
-		if(muted){
-			this.game.sound.mute = false;
-		} else {
-			this.game.sound.mute = true;
-		}
+    this.muteIcon = this.add.image(750, 1100, 'icons', 5).setInteractive();
+    this.muteIcon.on("pointerdown", function () {
+      var muted = this.game.sound.mute;
+      if (muted) {
+        this.game.sound.mute = false;
+      } else {
+        this.game.sound.mute = true;
+      }
 
     }, this);
 
-	this.pauseIcon = this.add.image(750,1250, 'icons', 0).setInteractive();
-	this.pauseIcon.on("pointerdown", function() {
+    this.pauseIcon = this.add.image(750, 1250, 'icons', 0).setInteractive();
+    this.pauseIcon.on("pointerdown", function () {
       isPaused = true;
-      if(gameSettings.sfx) {
-            this.pauseAudio.play();
-          }
-	  
+      if (gameSettings.sfx) {
+        this.pauseAudio.play();
+      }
+
       if (gameSettings.music) {
         this.back.pause();
       }
@@ -513,7 +166,7 @@ class playGame extends Phaser.Scene {
 
     this.input.on('pointerup', this.endSwipe, this);
 
-//this.input.on('pointerover', this.overSwipe, this);
+    //this.input.on('pointerover', this.overSwipe, this);
 
 
 
@@ -531,39 +184,39 @@ class playGame extends Phaser.Scene {
 
 
     this.iShape = this.add.image(106, game.config.height - 50, 'shapes', 0).setInteractive();
-    this.iShape.on('pointerdown', function() {
-      if(gameSettings.cheat == false){return}
-	  this.changeShape('I');
-	  
+    this.iShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
+      this.changeShape('I');
+
     }, this);
     this.tShape = this.add.image(212, game.config.height - 50, 'shapes', 1).setInteractive();
-    this.tShape.on('pointerdown', function() {
-		if(gameSettings.cheat == false){return}
+    this.tShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
       this.changeShape('T');
     }, this);
     this.sShape = this.add.image(318, game.config.height - 50, 'shapes', 2).setInteractive();
-    this.sShape.on('pointerdown', function() {
-		if(gameSettings.cheat == false){return}
+    this.sShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
       this.changeShape('S');
     }, this);
     this.zShape = this.add.image(424, game.config.height - 50, 'shapes', 3).setInteractive();
-    this.zShape.on('pointerdown', function() {
-		if(gameSettings.cheat == false){return}
+    this.zShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
       this.changeShape('Z');
     }, this);
     this.lShape = this.add.image(530, game.config.height - 50, 'shapes', 4).setInteractive();
-    this.lShape.on('pointerdown', function() {
-		if(gameSettings.cheat == false){return}
+    this.lShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
       this.changeShape('L');
     }, this);
     this.jShape = this.add.image(636, game.config.height - 50, 'shapes', 5).setInteractive();
-    this.jShape.on('pointerdown', function() {
-		if(gameSettings.cheat == false){return}
+    this.jShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
       this.changeShape('J');
     }, this);
     this.oShape = this.add.image(742, game.config.height - 50, 'shapes', 6).setInteractive();
-    this.oShape.on('pointerdown', function() {
-		if(gameSettings.cheat == false){return}
+    this.oShape.on('pointerdown', function () {
+      if (gameSettings.cheat == false) { return }
       this.changeShape('O');
     }, this);
 
@@ -605,11 +258,11 @@ class playGame extends Phaser.Scene {
 
 
   //touch control	
-  overSwipe(e){
+  overSwipe(e) {
     console.log('curr' + e.x)
     console.log('prev' + e.prevPosition.x)
   }
-  
+
   endSwipe(e) {
     if (e.downX > 50 + this.blockSize * WIDTH || e.downY > 120 + this.blockSize * HEIGHT) {
       return
@@ -628,7 +281,7 @@ class playGame extends Phaser.Scene {
           this.moveLeft();
         }
         if (swipeNormal.y > 0.8) { //down
-        this.hardDrop();
+          this.hardDrop();
           //this.moveDown();
           score += 10;
         }
@@ -667,14 +320,14 @@ class playGame extends Phaser.Scene {
     currentShape.shape = shapes[letter];
     this.applyShape();
   }
-  hardDrop(){
+  hardDrop() {
     var result = { lose: false, moved: true, rowsCleared: 0 };
 
     this.removeShape();
     currentShape.y++;
     if (this.collides(grid, currentShape)) {
-        currentShape.y--;
-	  this.setAudio.play();
+      currentShape.y--;
+      this.setAudio.play();
       //apply (stick) it to the grid 
       this.applyShape();
       //move on to the next shape in the bag
@@ -689,14 +342,14 @@ class playGame extends Phaser.Scene {
         result.lose = true;
         //	this.scene.start("PlayGame");
         this.end = this.time.addEvent({
-      delay: 800,
-      callback: function(){
-        this.endGame(false);
-      },
-      callbackScope: this,
-      loop: false
-    });
-        
+          delay: 800,
+          callback: function () {
+            this.endGame(false);
+          },
+          callbackScope: this,
+          loop: false
+        });
+
 
       }
       result.moved = false;
@@ -712,14 +365,14 @@ class playGame extends Phaser.Scene {
     var result = { lose: false, moved: true, rowsCleared: 0 };
     //remove the shape, because we will draw a new one
     this.removeShape();
- 
+
     //move it down the y axis
     currentShape.y++;
     //if it collides with the grid
     if (this.collides(grid, currentShape)) {
       //update its position
       currentShape.y--;
-	  this.setAudio.play();
+      this.setAudio.play();
       //apply (stick) it to the grid 
       this.applyShape();
       //move on to the next shape in the bag
@@ -734,14 +387,14 @@ class playGame extends Phaser.Scene {
         result.lose = true;
         //	this.scene.start("PlayGame");
         this.end = this.time.addEvent({
-      delay: 800,
-      callback: function(){
-        this.endGame(false);
-      },
-      callbackScope: this,
-      loop: false
-    });
-        
+          delay: 800,
+          callback: function () {
+            this.endGame(false);
+          },
+          callbackScope: this,
+          loop: false
+        });
+
 
       }
       result.moved = false;
@@ -762,7 +415,7 @@ class playGame extends Phaser.Scene {
   endGame(win) {
     this.reomoveUpcomingShape();
     this.gameSpeed.remove();
-	this.gameOverAudio.play();
+    this.gameOverAudio.play();
     this.shade2.setAlpha(.6).setTint(0x475365);
     this.playAgain = this.add.bitmapText(50 + this.blockSize * WIDTH / 2, 600, 'topaz', 'PLAY AGAIN', 50).setOrigin(.5).setTint(0xd8a603).setAlpha(0).setInteractive();
 
@@ -783,10 +436,10 @@ class playGame extends Phaser.Scene {
       duration: 500,
       delay: 1000
     });
-    this.playAgain.on('pointerdown', function(){
+    this.playAgain.on('pointerdown', function () {
       this.scene.start("titleScreen");
-    },this)
-    if(gameMode == 'a'){
+    }, this)
+    if (gameMode == 'a') {
       if (gameSettings.highScoreA < score) {
         gameSettings.highScoreA = score;
         localStorage.setItem('tetrisSettings', JSON.stringify(gameSettings));
@@ -806,9 +459,9 @@ class playGame extends Phaser.Scene {
     //remove current shape, slide it over, if it collides though, slide it back
     this.removeShape();
     currentShape.x--;
-    if(gameSettings.sfx){
-	    this.moveAudio.play();
-	  }
+    if (gameSettings.sfx) {
+      this.moveAudio.play();
+    }
     if (this.collides(grid, currentShape)) {
       currentShape.x++;
     }
@@ -823,9 +476,9 @@ class playGame extends Phaser.Scene {
   moveRight() {
     this.removeShape();
     currentShape.x++;
-	if (gameSettings.sfx) {
-	  this.moveAudio.play();
-	}
+    if (gameSettings.sfx) {
+      this.moveAudio.play();
+    }
     if (this.collides(grid, currentShape)) {
       currentShape.x--;
     }
@@ -845,7 +498,7 @@ class playGame extends Phaser.Scene {
     if (gameSettings.sfx) {
       this.rotateAudio.play();
     }
-	
+
     this.applyShape();
   }
 
@@ -921,7 +574,7 @@ class playGame extends Phaser.Scene {
       }
 
       var counter = rowsToClear.length;
-  
+
       for (var i = rowsToClear[0] - 1; i >= 0; i--) {
         for (var j = 0; j < WIDTH; j++) {
           var y = i + counter;
@@ -941,25 +594,25 @@ class playGame extends Phaser.Scene {
 
 
     }
-    
-    if(gameMode == 'a') {
+
+    if (gameMode == 'a') {
       var templevel = level
-	  if(this.totalCleared % 10 == 0 && this.totalCleared > 1 && rowsToClear.length > 0){
-		  level++;
-		  this.levelText.setText(level);
-		  this.changeSpeed();
+      if (this.totalCleared % 10 == 0 && this.totalCleared > 1 && rowsToClear.length > 0) {
+        level++;
+        this.levelText.setText(level);
+        this.changeSpeed();
         if (gameSettings.sfx) {
           this.nextLevelAudio.play();
         }
-	  }
-      
-      
-      
+      }
+
+
+
     } else {
-      if (25 - this.totalCleared <= 0){
+      if (25 - this.totalCleared <= 0) {
         this.end = this.time.addEvent({
           delay: 800,
-          callback: function() {
+          callback: function () {
             this.endGame(true);
           },
           callbackScope: this,
@@ -1125,8 +778,8 @@ class playGame extends Phaser.Scene {
   }
   //flip row x column to column x row
   transpose(array) {
-    return array[0].map(function(col, i) {
-      return array.map(function(row) {
+    return array[0].map(function (col, i) {
+      return array.map(function (row) {
         return row[i];
       });
     });
@@ -1143,22 +796,22 @@ class playGame extends Phaser.Scene {
 
     }
     /*var output = document.getElementById("output");
- 		var html = "<h1>TetNet</h1><h5>Evolutionary approach to Tetris AI</h5>var grid = [";
- 		var space = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
- 		for (var i = 0; i < grid.length; i++) {
- 			if (i === 0) {
- 				html += "[" + grid[i] + "]";
- 			} else {
- 				html += "<br />" + space + "[" + grid[i] + "]";
- 			}
- 		}
- 		html += "];";
- 		for (var c = 0; c < colors.length; c++) {
- 			html = replaceAll(html, "," + (c + 1), ",<font color=\"" + colors[c] + "\">" + (c + 1) + "</font>");
- 			html = replaceAll(html, (c + 1) + ",", "<font color=\"" + colors[c] + "\">" + (c + 1) + "</font>,");
- 		}
- 		output.innerHTML = html;
-		*/
+      var html = "<h1>TetNet</h1><h5>Evolutionary approach to Tetris AI</h5>var grid = [";
+      var space = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+      for (var i = 0; i < grid.length; i++) {
+        if (i === 0) {
+          html += "[" + grid[i] + "]";
+        } else {
+          html += "<br />" + space + "[" + grid[i] + "]";
+        }
+      }
+      html += "];";
+      for (var c = 0; c < colors.length; c++) {
+        html = replaceAll(html, "," + (c + 1), ",<font color=\"" + colors[c] + "\">" + (c + 1) + "</font>");
+        html = replaceAll(html, (c + 1) + ",", "<font color=\"" + colors[c] + "\">" + (c + 1) + "</font>,");
+      }
+      output.innerHTML = html;
+    */
 
   }
 
@@ -1175,19 +828,19 @@ class playGame extends Phaser.Scene {
           var garbage = Phaser.Math.Between(1, 100);
           if (garbage < 50) {
             var rancolor = Phaser.Math.Between(1, 7);
-            var block = this.add.image(50 + this.blockSize * j + this.blockSize / 2, 120 + this.blockSize * i + this.blockSize / 2, 'field', rancolor);
+            var block = this.add.image(50 + this.blockSize * j + this.blockSize / 2, 120 + this.blockSize * i + this.blockSize / 2, blockKey, rancolor);
             block.value = rancolor;
           } else {
-            var block = this.add.image(50 + this.blockSize * j + this.blockSize / 2, 120 + this.blockSize * i + this.blockSize / 2, 'field', 8);
+            var block = this.add.image(50 + this.blockSize * j + this.blockSize / 2, 120 + this.blockSize * i + this.blockSize / 2, blockKey, 8);
             block.value = 8;
           }
         } else {
-          var block = this.add.image(50 + this.blockSize * j + this.blockSize / 2, 120 + this.blockSize * i + this.blockSize / 2, 'field', 8);
+          var block = this.add.image(50 + this.blockSize * j + this.blockSize / 2, 120 + this.blockSize * i + this.blockSize / 2, blockKey, 8);
           block.value = 8;
         }
         block.displayWidth = this.blockSize;
         block.displayHeight = this.blockSize;
-      
+
         //  block.value = this.level[j][i];
         col.push(block);
       }
@@ -1205,7 +858,7 @@ class playGame extends Phaser.Scene {
     for (var i = 0; i < 4; i++) {
       var col = [];
       for (var j = 0; j < 4; j++) {
-        var block = this.add.image(700 + this.blockSizeMini * j + this.blockSizeMini / 2, 120 + this.blockSizeMini * i + this.blockSizeMini / 2, 'field', 8);
+        var block = this.add.image(700 + this.blockSizeMini * j + this.blockSizeMini / 2, 120 + this.blockSizeMini * i + this.blockSizeMini / 2, blockKey, 8);
         block.displayWidth = this.blockSizeMini;
         block.displayHeight = this.blockSizeMini;
         block.value = 8;
@@ -1327,150 +980,6 @@ class playGame extends Phaser.Scene {
   }
 
 }
-class settingsScreen extends Phaser.Scene {
-  constructor() {
-    super("settingsScreen");
-  }
-  preload() {
-
-  }
-  create() {
-    this.settingsText = this.add.bitmapText(game.config.width / 2, 100, 'topaz', 'Settings', 70).setOrigin(.5, .5).setTint(0xffffff);
-//music toggle
-    this.soundText = this.add.bitmapText(50, 200, 'topaz', 'SOUNDS ', 40).setOrigin(0, .5).setTint(0xffffff);
-	
-	this.sfxText = this.add.bitmapText(200, 300, 'topaz', 'Music: ', 50).setOrigin(0, .5).setTint(0xd8a603);
-    this.musicToggle = this.add.image(400, 300, 'toggle', 0).setOrigin(0, .5).setScale(.8).setInteractive();
-    if (gameSettings.music == true) {
-      this.musicToggle.setFrame(2);
-    }
-    this.musicToggle.on('pointerdown', function() {
-      this.musicToggle.setAlpha(.7);
-    }, this);
-    this.musicToggle.on('pointerup', function() {
-      this.musicToggle.setAlpha(1);
-      if (gameSettings.music == true) {
-        gameSettings.music = false;
-        this.musicToggle.setFrame(0);
-      } else {
-        gameSettings.music = true;
-        this.musicToggle.setFrame(2);
-      }
-      localStorage.setItem('tetrisSettings', JSON.stringify(gameSettings));
-    }, this);
 
 
-//sfx toggle
-
-    this.sfxText = this.add.bitmapText(200, 400, 'topaz', 'SFX: ', 50).setOrigin(0, .5).setTint(0xd8a603);
-    this.sfxToggle = this.add.image(400, 400, 'toggle', 0).setOrigin(0, .5).setScale(.8).setInteractive();
-    if (gameSettings.sfx == true) {
-      this.sfxToggle.setFrame(2);
-    }
-    this.sfxToggle.on('pointerdown', function() {
-      this.sfxToggle.setAlpha(.7);
-    }, this);
-    this.sfxToggle.on('pointerup', function() {
-      this.sfxToggle.setAlpha(1);
-      if (gameSettings.sfx == true) {
-        gameSettings.sfx = false;
-        this.sfxToggle.setFrame(0);
-      } else {
-        gameSettings.sfx = true;
-        this.sfxToggle.setFrame(2);
-      }
-      localStorage.setItem('tetrisSettings', JSON.stringify(gameSettings));
-    }, this);
-
-//cheat toggle
-
-    this.cheatText = this.add.bitmapText(200, 500, 'topaz', 'Cheat: ', 50).setOrigin(0, .5).setTint(0xd8a603);
-    this.cheatToggle = this.add.image(400, 500, 'toggle', 0).setOrigin(0, .5).setScale(.8).setInteractive();
-    if (gameSettings.cheat == true) {
-      this.cheatToggle.setFrame(2);
-    }
-    this.cheatToggle.on('pointerdown', function() {
-      this.cheatToggle.setAlpha(.7);
-    }, this);
-    this.cheatToggle.on('pointerup', function() {
-      this.cheatToggle.setAlpha(1);
-      if (gameSettings.cheat == true) {
-        gameSettings.cheat = false;
-        this.cheatToggle.setFrame(0);
-      } else {
-        gameSettings.cheat = true;
-        this.cheatToggle.setFrame(2);
-      }
-      localStorage.setItem('tetrisSettings', JSON.stringify(gameSettings));
-    }, this);
-
-//tile selection
-	this.blockText = this.add.bitmapText(50, 600, 'topaz', 'BLOCKS ', 40).setOrigin(0, .5).setTint(0xffffff);
-
-//display sample image
-    var temp = gameSettings.blockSet + 1; 
-	this.blockLabel = this.add.bitmapText(game.config.width / 2, 700, 'topaz', 'Block Set ' + temp, 50).setOrigin(.5).setTint(0xd8a603);
-	this.sample = this.add.image(game.config.width /2, 900, 'blocksample', gameOptions.blockSet).setOrigin(.5).setInteractive();;
-	this.sample.on('pointerdown', this.changeBlock,this);
-//back to main
-    this.backTo = this.add.bitmapText(game.config.width / 2, 1300, 'topaz', 'BACK', 70).setOrigin(.5, .5).setTint(0xffffff).setInteractive();
-    this.backTo.on('pointerdown', function() {
-    //  localStorage.setItem('tetrisSettings', JSON.stringify(gameSettings));
-      this.scene.start("titleScreen");
-    }, this);
-
-  }
-  
-  changeBlock(){
-	  if(gameSettings.blockSet == 7){
-		  gameSettings.blockSet = 0;
-	  } else {
-		  gameSettings.blockSet++;
-	  }
-	  var temp = gameSettings.blockSet + 1;
-	  this.blockLabel.setText('Block Set ' + temp);
-	  this.tweenSample(gameSettings.blockSet);
-	  localStorage.setItem('tetrisSettings', JSON.stringify(gameSettings));
-  }
-  
-  tweenSample(frame){
-	  
-	  var tween = this.tweens.add({
-      targets: this.sample,
-      alpha: 0,
-      duration: 300,
-      onComplete: function () {
-			    this.sample.setFrame(frame);
-			    var tween = this.tweens.add({
-			          targets: this.sample,
-			          alpha: 1,
-			          duration: 300,
-			          });
-	        },
-      onCompleteScope: this,
-      });
-	  }
-}
-class pauseGame extends Phaser.Scene {
-  constructor() {
-    super("pauseGame");
-  }
-  preload() {
-
-  }
-  create() {
-    var text = "Swipe up: rotate piece\nSwipe down: hard drop\nTap: soft drop\nSwipe left/right: move piece."
-    this.instructions = this.add.bitmapText(50, 200, 'topaz', text, 40).setOrigin(0, .5).setTint(0xffffff).setInteractive();
-
-    this.exitText = this.add.bitmapText(game.config.width / 2, 1200, 'topaz', 'UNPAUSE', 70).setOrigin(.5, .5).setTint(0xffffff).setInteractive();
-
-    this.exitText.on('pointerdown', function() {
-      isPaused = false;
-      this.scene.sleep();
-
-      this.scene.resume("PlayGame");
-    }, this);
-
-  }
-}
 
